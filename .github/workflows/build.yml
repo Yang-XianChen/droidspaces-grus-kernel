@@ -120,6 +120,13 @@ jobs:
           ld.lld --version 2>&1 | head -2 || true
           [ "$missing" -eq 0 ] || { echo "::error::工具链不完整"; exit 1; }
 
+          # 为 32 位 vDSO 准备的 ARM32 GCC 包装脚本随仓库提供(见 scripts/)
+          WRAP="$GITHUB_WORKSPACE/scripts/arm32-gcc-wrapper.sh"
+          test -f "$WRAP"
+          chmod +x "$WRAP"
+          echo "ARM32 包装脚本: $WRAP"
+          arm-linux-gnueabi-gcc --version | head -1
+
       - name: 应用 Droidspaces 官方 non-GKI 内核补丁
         run: |
           set -eux
@@ -186,7 +193,8 @@ jobs:
           #   clang --target=arm-linux-gnueabi --gcc-toolchain=... --prefix=...
           # 但 ZyCromerZ 的 clang 包里自带一个宿主 x86_64 的 ld,clang 会优先在
           # 自己所在目录找链接器 -> "unrecognised emulation mode: armelf_linux_eabi"。
-          # 命令行变量优先于 Makefile 赋值,因此直接把 CC_ARM32 指到 ARM32 GCC。
+          # 命令行变量优先于 Makefile 赋值,因此把 CC_ARM32 指到 ARM32 GCC 包装脚本
+          # (包装脚本会自动剥离 clang 专有参数,见"工具链自检"步骤)。
           # 关键:LLVM 工具全部显式写在命令行上。
           # 4.14 的 arch/arm64/Makefile 有 "LD += -EL";靠 LLVM=1 在 Makefile 内赋值时,
           # 递归子 make(vdso)拿到的 LD 会为空 -> 命令变成 "-EL ..." -> 构建失败。
@@ -198,7 +206,7 @@ jobs:
                      CROSS_COMPILE_ARM32=arm-linux-gnueabi-
                      LLVM=1 LLVM_IAS=1
                      LD=ld.lld AR=llvm-ar NM=llvm-nm
-                     CC_ARM32=arm-linux-gnueabi-gcc
+                     CC_ARM32=$GITHUB_WORKSPACE/arm32-gcc-wrapper.sh
                      OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump
                      READELF=llvm-readelf STRIP=llvm-strip)
 
@@ -282,7 +290,7 @@ jobs:
                LD=ld.lld AR=llvm-ar NM=llvm-nm \
                OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
                READELF=llvm-readelf STRIP=llvm-strip \
-               CC_ARM32=arm-linux-gnueabi-gcc
+               CC_ARM32=$GITHUB_WORKSPACE/arm32-gcc-wrapper.sh
           # grus 的 BOARD_KERNEL_IMAGE_NAME 是 Image.gz(KERNEL_GZIP 默认 y)
           ls -la out/arch/arm64/boot/Image out/arch/arm64/boot/Image.gz 2>/dev/null || true
           file out/arch/arm64/boot/Image* 2>/dev/null || true
