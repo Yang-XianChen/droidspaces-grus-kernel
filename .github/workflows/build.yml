@@ -46,7 +46,8 @@ jobs:
             bc bison build-essential ccache cpio curl device-tree-compiler flex gawk \
             git gnupg gperf imagemagick kmod libelf-dev libncurses-dev libssl-dev \
             libxml2 libxml2-utils lzop pngcrush python3 rsync schedtool \
-            squashfs-tools xsltproc zip zlib1g-dev
+            squashfs-tools xsltproc zip zlib1g-dev \
+            binutils-arm-linux-gnueabi gcc-arm-linux-gnueabi
 
       - name: 获取内核源码
         run: |
@@ -100,6 +101,15 @@ jobs:
               printf '  [ OK ] %-16s %s\n' "$t" "$(command -v $t)"
             else
               printf '  [MISS] %-16s 缺失\n' "$t"
+              missing=1
+            fi
+          done
+          echo "--- 32 位 ARM 交叉工具链(compat vDSO 必需)---"
+          for t in arm-linux-gnueabi-ld arm-linux-gnueabi-gcc arm-linux-gnueabi-as; do
+            if command -v "$t" >/dev/null 2>&1; then
+              printf '  [ OK ] %-24s %s\n' "$t" "$(command -v $t)"
+            else
+              printf '  [MISS] %-24s 缺失\n' "$t"
               missing=1
             fi
           done
