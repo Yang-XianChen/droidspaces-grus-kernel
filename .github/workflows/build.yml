@@ -206,7 +206,7 @@ jobs:
                      CROSS_COMPILE_ARM32=arm-linux-gnueabi-
                      LLVM=1 LLVM_IAS=1
                      LD=ld.lld AR=llvm-ar NM=llvm-nm
-                     CC_ARM32=$GITHUB_WORKSPACE/arm32-gcc-wrapper.sh
+                     CC_ARM32=$GITHUB_WORKSPACE/scripts/arm32-gcc-wrapper.sh
                      OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump
                      READELF=llvm-readelf STRIP=llvm-strip)
 
@@ -290,7 +290,7 @@ jobs:
                LD=ld.lld AR=llvm-ar NM=llvm-nm \
                OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
                READELF=llvm-readelf STRIP=llvm-strip \
-               CC_ARM32=$GITHUB_WORKSPACE/arm32-gcc-wrapper.sh
+               CC_ARM32=$GITHUB_WORKSPACE/scripts/arm32-gcc-wrapper.sh
           # grus 的 BOARD_KERNEL_IMAGE_NAME 是 Image.gz(KERNEL_GZIP 默认 y)
           ls -la out/arch/arm64/boot/Image out/arch/arm64/boot/Image.gz 2>/dev/null || true
           file out/arch/arm64/boot/Image* 2>/dev/null || true
