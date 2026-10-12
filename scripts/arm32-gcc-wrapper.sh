@@ -27,24 +27,27 @@ set -u
 args=("$@")
 
 while :; do
-  err=$(arm-linux-gnueabi-gcc "${args[@]}" 2>&1 >/dev/null)
+  # 必须同时保留 stdout!vdso32/Makefile 第 30 行靠
+  #   $(shell $(CC_ARM32) -print-file-name=include)
+  # 的 stdout 取头文件目录,丢掉它会导致 -isystem 收到空值、
+  # 进而报 "asm/linkage.h: No such file or directory"。
+  out=$(arm-linux-gnueabi-gcc "${args[@]}" 2>&1)
   rc=$?
 
   if [ $rc -eq 0 ]; then
-    # 编译成功:目标文件已写出,只把警告透传到 stderr
-    printf '%s' "$err" >&2
+    printf '%s' "$out"
     exit 0
   fi
 
   # GCC 的报错可能带 Unicode 引号 ‘X’,也可能带 ASCII 引号 'X'
-  bad=$(printf '%s\n' "$err" \
+  bad=$(printf '%s\n' "$out" \
         | grep -oE "unrecognized command-line option [^ ]+" \
         | head -1 \
         | sed -E "s/.*option [‘'\"]?//; s/[’'\"]?$//")
 
   if [ -z "$bad" ]; then
     # 不是未知参数导致的失败 —— 原样报告
-    printf '%s\n' "$err" >&2
+    printf '%s\n' "$out" >&2
     exit $rc
   fi
 
@@ -55,7 +58,7 @@ while :; do
 
   if [ ${#new[@]} -eq ${#args[@]} ]; then
     # 找不到可以剥离的参数,避免死循环
-    printf '%s\n' "$err" >&2
+    printf '%s\n' "$out" >&2
     exit $rc
   fi
 
