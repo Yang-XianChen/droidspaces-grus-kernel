@@ -181,6 +181,12 @@ jobs:
           set -euxo pipefail
           cd kernel
 
+          # CC_ARM32:32 位 vDSO 交给真正的 ARM32 GCC。
+          # arch/arm64/kernel/vdso32/Makefile 在 cc-name=clang 时会组出
+          #   clang --target=arm-linux-gnueabi --gcc-toolchain=... --prefix=...
+          # 但 ZyCromerZ 的 clang 包里自带一个宿主 x86_64 的 ld,clang 会优先在
+          # 自己所在目录找链接器 -> "unrecognised emulation mode: armelf_linux_eabi"。
+          # 命令行变量优先于 Makefile 赋值,因此直接把 CC_ARM32 指到 ARM32 GCC。
           # 关键:LLVM 工具全部显式写在命令行上。
           # 4.14 的 arch/arm64/Makefile 有 "LD += -EL";靠 LLVM=1 在 Makefile 内赋值时,
           # 递归子 make(vdso)拿到的 LD 会为空 -> 命令变成 "-EL ..." -> 构建失败。
@@ -192,6 +198,7 @@ jobs:
                      CROSS_COMPILE_ARM32=arm-linux-gnueabi-
                      LLVM=1 LLVM_IAS=1
                      LD=ld.lld AR=llvm-ar NM=llvm-nm
+                     CC_ARM32=arm-linux-gnueabi-gcc
                      OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump
                      READELF=llvm-readelf STRIP=llvm-strip)
 
@@ -274,7 +281,8 @@ jobs:
                LLVM=1 LLVM_IAS=1 \
                LD=ld.lld AR=llvm-ar NM=llvm-nm \
                OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
-               READELF=llvm-readelf STRIP=llvm-strip
+               READELF=llvm-readelf STRIP=llvm-strip \
+               CC_ARM32=arm-linux-gnueabi-gcc
           # grus 的 BOARD_KERNEL_IMAGE_NAME 是 Image.gz(KERNEL_GZIP 默认 y)
           ls -la out/arch/arm64/boot/Image out/arch/arm64/boot/Image.gz 2>/dev/null || true
           file out/arch/arm64/boot/Image* 2>/dev/null || true
